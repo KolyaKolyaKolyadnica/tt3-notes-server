@@ -32,10 +32,12 @@ export class NotesService {
   async deleteAllChildren(id: string) {
     const rootNote = await this.getNoteById(id);
 
-    rootNote.childrenId.forEach(async (children: string) => {
-      this.deleteAllChildren(children);
-      await Note.findByIdAndDelete(children);
-    });
+    if (rootNote.childrenId.length !== 0) {
+      rootNote.childrenId.forEach(async (children: string) => {
+        await this.deleteAllChildren(children);
+        await Note.findByIdAndDelete(children);
+      });
+    }
   }
 
   async deleteNote(id: string) {
