@@ -6,6 +6,7 @@ import {
   Post,
   Put,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
@@ -35,14 +36,15 @@ export class NotesController {
     return this.notesService.updateNote(id, dto);
   }
 
-  @Put('move-up/:id')
-  async moveUpChildNote(@Param('id') id: string, @Body() dto: UpdateNoteDto) {
-    return this.notesService.moveUpChildNote(id, dto);
-  }
+  @Put('move/:id')
+  async moveChildNote(
+    @Param() params: any,
+    @Body() dto: UpdateNoteDto,
+    @Query() query: { direction: string },
+  ) {
+    console.log(this.notesService.moveChildNote);
 
-  @Put('move-down/:id')
-  async moveDownChildNote(@Param('id') id: string, @Body() dto: UpdateNoteDto) {
-    return this.notesService.moveDownChildNote(id, dto);
+    return this.notesService.moveChildNote(params.id, dto, query.direction);
   }
 
   @Delete(':id')

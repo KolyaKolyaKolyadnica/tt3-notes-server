@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 const Note = require('./notesShema');
@@ -8,86 +8,123 @@ export class NotesService {
   constructor() {}
 
   async getAllNotes() {
-    const notes = await Note.find({});
-    return notes;
+    try {
+      const notes = await Note.find({});
+      return notes;
+    } catch (error) {
+      return error;
+    }
   }
 
   async getNoteById(id: string) {
-    // const note = await Note.findById(id).exec() // Нафіга цей ехес()???
-    const note = await Note.findById(id);
-    return note;
+    try {
+      // const note = await Note.findById(id).exec() // Нафіга цей ехес()???
+      const note = await Note.findById(id);
+
+      console.log('============', note);
+
+      if (!note) {
+        throw new NotFoundException();
+      }
+
+      return note;
+    } catch (error) {
+      return error;
+    }
   }
 
   async addNote(dto: CreateNoteDto) {
-    const note = new Note(dto);
-    await note.save();
+    try {
+      const note = new Note(dto);
+      await note.save();
 
-    const parentNode = await this.getNoteById(dto.parentId);
-    parentNode.childrenId = [...parentNode.childrenId, note.id];
-    await parentNode.save();
+      const parentNode = await this.getNoteById(dto.parentId);
+      parentNode.childrenId = [...parentNode.childrenId, note.id];
+      await parentNode.save();
 
-    return note;
+      return note;
+    } catch (error) {
+      return error;
+    }
   }
 
   async deleteAllChildren(id: string) {
-    const rootNote = await this.getNoteById(id);
+    try {
+      const rootNote = await this.getNoteById(id);
 
-    if (rootNote.childrenId.length !== 0) {
-      rootNote.childrenId.forEach(async (children: string) => {
-        await this.deleteAllChildren(children);
-        await Note.findByIdAndDelete(children);
-      });
+      if (rootNote.childrenId.length !== 0) {
+        rootNote.childrenId.forEach(async (children: string) => {
+          await this.deleteAllChildren(children);
+          await Note.findByIdAndDelete(children);
+        });
+      }
+    } catch (error) {
+      return error;
     }
   }
 
   async deleteNote(id: string) {
-    await this.deleteAllChildren(id);
+    try {
+      await this.deleteAllChildren(id);
 
-    const note = await Note.findByIdAndDelete(id);
+      const note = await Note.findByIdAndDelete(id);
 
-    const parentNode = await this.getNoteById(note.parentId);
-    parentNode.childrenId = parentNode.childrenId.filter(
-      (item) => item !== note.id,
-    );
-    await parentNode.save();
+      const parentNode = await this.getNoteById(note.parentId);
+      parentNode.childrenId = parentNode.childrenId.filter(
+        (item) => item !== note.id,
+      );
+      await parentNode.save();
 
-    return note;
+      return note;
+    } catch (error) {
+      return error;
+    }
   }
 
   async removeSublist(id: string) {
-    await this.deleteAllChildren(id);
+    try {
+      await this.deleteAllChildren(id);
 
-    const note = await this.getNoteById(id);
-    note.childrenId = [];
-    await note.save();
+      const note = await this.getNoteById(id);
+      note.childrenId = [];
+      await note.save();
 
-    return note;
+      return note;
+    } catch (error) {
+      return error;
+    }
   }
 
   async updateNote(id: string, dto: UpdateNoteDto) {
-    const note = await Note.findByIdAndUpdate(id, dto);
-    return note;
+    try {
+      const note = await Note.findByIdAndUpdate(id, dto);
+      return note;
+    } catch (error) {
+      return error;
+    }
   }
 
-  async moveUpChildNote(id: string, dto: UpdateNoteDto) {
-    const idx = dto.childrenId.findIndex((item) => item === id);
-    const newArrIds = [...dto.childrenId];
-    [newArrIds[idx], newArrIds[idx - 1]] = [newArrIds[idx - 1], newArrIds[idx]];
+  async moveChildNote(id: string, dto: UpdateNoteDto, direction: string) {
+    try {
+      const idx = dto.childrenId.findIndex((item) => item === id);
+      const newArrIds = [...dto.childrenId];
 
-    return await this.updateNote(dto._id, {
-      ...dto,
-      childrenId: newArrIds,
-    });
-  }
+      direction === 'up'
+        ? ([newArrIds[idx], newArrIds[idx - 1]] = [
+            newArrIds[idx - 1],
+            newArrIds[idx],
+          ])
+        : ([newArrIds[idx], newArrIds[idx + 1]] = [
+            newArrIds[idx + 1],
+            newArrIds[idx],
+          ]);
 
-  async moveDownChildNote(id: string, dto: UpdateNoteDto) {
-    const idx = dto.childrenId.findIndex((item) => item === id);
-    const newArrIds = [...dto.childrenId];
-    [newArrIds[idx], newArrIds[idx + 1]] = [newArrIds[idx + 1], newArrIds[idx]];
-
-    return await this.updateNote(dto._id, {
-      ...dto,
-      childrenId: newArrIds,
-    });
+      return await this.updateNote(dto._id, {
+        ...dto,
+        childrenId: newArrIds,
+      });
+    } catch (error) {
+      return error;
+    }
   }
 }
