@@ -1,5 +1,7 @@
+import * as cookieParser from 'cookie-parser';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
 const mongoose = require('mongoose');
 
 require('dotenv').config();
@@ -12,7 +14,13 @@ async function bootstrap() {
   console.log('Database connection successful');
 
   const app = await NestFactory.create(AppModule);
-  app.enableCors();
+  app.useGlobalPipes(new ValidationPipe());
+  app.enableCors({
+    origin: process.env.CLIENT_URL,
+    credentials: true,
+  });
+  app.use(cookieParser());
+
   await app.listen(PORT);
 
   console.log(`Server running. Use our API on port: ${PORT}`);

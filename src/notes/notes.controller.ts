@@ -7,18 +7,21 @@ import {
   Put,
   Delete,
   Query,
+  UseFilters,
 } from '@nestjs/common';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 import { NotesService } from './notes.service';
+import { AllExceptionsFilter } from 'src/exeptions/all-exeptions.filter';
 
+@UseFilters(AllExceptionsFilter)
 @Controller('notes')
 export class NotesController {
   constructor(private readonly notesService: NotesService) {}
 
-  @Get()
-  async getAllNotes() {
-    return this.notesService.getAllNotes();
+  @Get('all/:userId')
+  async getAllNotes(@Param('userId') userId: string) {
+    return this.notesService.getAllNotes(userId);
   }
 
   @Get(':id')
@@ -33,18 +36,19 @@ export class NotesController {
 
   @Put(':id')
   async updateTextOfNote(@Param('id') id: string, @Body() dto: UpdateNoteDto) {
+    console.log('@Put Param===========', id, dto);
+    console.log('@Put Body ===========', dto);
+
     return this.notesService.updateNote(id, dto);
   }
 
   @Put('move/:id')
   async moveChildNote(
-    @Param() params: any,
+    @Param('id') id: string,
     @Body() dto: UpdateNoteDto,
     @Query() query: { direction: string },
   ) {
-    console.log(this.notesService.moveChildNote);
-
-    return this.notesService.moveChildNote(params.id, dto, query.direction);
+    return this.notesService.moveChildNote(id, dto, query.direction);
   }
 
   @Delete(':id')

@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-
 const note = new mongoose.Schema(
   {
     parentId: {
@@ -13,6 +12,10 @@ const note = new mongoose.Schema(
     text: {
       type: String,
       default: '',
+    },
+    userId: {
+      type: String,
+      require: true,
     },
   },
   { versionKey: false },

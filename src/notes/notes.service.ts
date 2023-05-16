@@ -1,15 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
-const Note = require('./notesShema');
+const Note = require('../models/notes-shema');
 
 @Injectable()
 export class NotesService {
   constructor() {}
 
-  async getAllNotes() {
+  async getAllNotes(userId) {
     try {
-      const notes = await Note.find({});
+      const notes = await Note.find({ userId });
       return notes;
     } catch (error) {
       return error;
@@ -20,8 +20,6 @@ export class NotesService {
     try {
       // const note = await Note.findById(id).exec() // Нафіга цей ехес()???
       const note = await Note.findById(id);
-
-      console.log('============', note);
 
       if (!note) {
         throw new NotFoundException();
@@ -97,7 +95,11 @@ export class NotesService {
 
   async updateNote(id: string, dto: UpdateNoteDto) {
     try {
+      console.log('updateNote in service ============');
       const note = await Note.findByIdAndUpdate(id, dto);
+
+      console.log('note in updNote service ============', note);
+
       return note;
     } catch (error) {
       return error;
