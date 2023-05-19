@@ -11,14 +11,16 @@ import { AuthModule } from './auth/auth.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthMiddleware } from './middleware/auth.middleware';
 import { NotesController } from './notes/notes.controller';
+require('dotenv').config();
 
 const DB_HOST = process.env.DB_HOST;
+console.log(DB_HOST);
 
 @Module({
   imports: [
     NotesModule,
     AuthModule,
-    // MongooseModule.forRoot(DB_HOST)
+    MongooseModule.forRoot(process.env.DB_HOST),
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -13,13 +13,15 @@ import { NotesService } from 'src/notes/notes.service';
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
-// import { User } from 'src/models/user-shema';
-const User = require('../models/user-shema');
+import { User } from 'src/models/user-shema';
+// const User = require('../models/user-shema');
 const Token = require('../models/token-shema');
 const Note = require('../models/notes-shema');
 
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 // const uuid = require('uuid'); // По сути не нужный пакет т.к. есть crypto
 
 interface IUser {
@@ -33,7 +35,10 @@ interface IUser {
 
 @Injectable()
 export class AuthService {
-  constructor(private notesService: NotesService) {}
+  constructor(
+    @InjectModel(User.name) private userModel: Model<User>,
+    private notesService: NotesService,
+  ) {}
 
   async sendActivationEmail(email, activationLink) {
     const transporter = nodemailer.createTransport({
@@ -66,7 +71,8 @@ export class AuthService {
       dto.username = 'Anonymus';
     }
 
-    const candidate: IUser = await User.findOne({ email });
+    const candidate: IUser = await this.userModel.findOne({ email });
+    // const candidate: IUser = await User.findOne({ email });
     if (candidate) {
       throw new BadRequestException({
         message: `Пользователь с таким email (${email}) уже зарегестрирован.`,
@@ -79,23 +85,40 @@ export class AuthService {
     // const activationLink = uuid.v4();
     const activationLink = randomUUID();
 
-    const user = await User.create({
+    const user = await this.userModel.create({
       ...dto,
       password: hashPassword,
       activationLink,
     });
+    // const user = await User.create({
+    //   ...dto,
+    //   password: hashPassword,
+    //   activationLink,
+    // });
 
     await this.sendActivationEmail(
       email,
       `${process.env.API_URL}/auth/activate/${activationLink}`,
     );
 
+    console.log('===');
+    console.log('===');
+    console.log('user === ', user);
+    console.log('===');
+    console.log('===');
+
     await this.notesService.addNote({
       parentId: null,
       text: 'Start',
       childrenId: [],
-      userId: user._id,
+      userId: user._id.toString(),
     });
+    // await this.notesService.addNote({
+    //   parentId: null,
+    //   text: 'Start',
+    //   childrenId: [],
+    //   userId: user._id,
+    // });
 
     return await this.addTokensToUser(user);
   }
@@ -103,7 +126,8 @@ export class AuthService {
   async login(dto) {
     const { email, password } = dto;
 
-    const user: IUser = await User.findOne({ email });
+    const user: IUser = await this.userModel.findOne({ email });
+    // const user: IUser = await User.findOne({ email });
     if (!user) {
       throw new BadRequestException({
         message: `Пользователь с таким email (${email}) не найден.`,
@@ -128,7 +152,8 @@ export class AuthService {
   }
 
   async activate(activationLink) {
-    const user = await User.findOne({ activationLink });
+    const user = await this.userModel.findOne({ activationLink });
+    // const user = await User.findOne({ activationLink });
     if (!user) {
       throw new BadRequestException({
         message: 'Некорректная ссылка активации.',
@@ -140,11 +165,17 @@ export class AuthService {
     await user.save();
 
     const firstNote = await this.notesService.addNote({
-      userId: user._id,
+      userId: user._id.toString(),
       text: '',
       parentId: null,
       childrenId: [],
     });
+    // const firstNote = await this.notesService.addNote({
+    //   userId: user._id,
+    //   text: '',
+    //   parentId: null,
+    //   childrenId: [],
+    // });
   }
 
   async refresh(refreshToken) {
@@ -168,7 +199,8 @@ export class AuthService {
       });
     }
 
-    const user = await User.findById(tokenFromDb.user);
+    const user = await this.userModel.findById(tokenFromDb.user);
+    // const user = await User.findById(tokenFromDb.user);
 
     return await this.addTokensToUser(user);
   }

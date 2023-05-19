@@ -3,9 +3,15 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { TokensModule } from '../tokens/tokens.module';
 import { NotesModule } from 'src/notes/notes.module';
+import { User, UserSchema } from 'src/models/user-shema';
+import { MongooseModule } from '@nestjs/mongoose';
 
 @Module({
-  imports: [TokensModule, NotesModule],
+  imports: [
+    TokensModule,
+    NotesModule,
+    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+  ],
   controllers: [AuthController],
   providers: [AuthService],
 })
