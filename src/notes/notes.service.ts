@@ -95,10 +95,7 @@ export class NotesService {
 
   async updateNote(id: string, dto: UpdateNoteDto) {
     try {
-      console.log('updateNote in service ============');
       const note = await Note.findByIdAndUpdate(id, dto);
-
-      console.log('note in updNote service ============', note);
 
       return note;
     } catch (error) {

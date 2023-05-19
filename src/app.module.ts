@@ -1,19 +1,38 @@
-import { Module } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { NotesModule } from './notes/notes.module';
-import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
 import { MongooseModule } from '@nestjs/mongoose';
+import { AuthMiddleware } from './middleware/auth.middleware';
+import { NotesController } from './notes/notes.controller';
 
 const DB_HOST = process.env.DB_HOST;
 
 @Module({
   imports: [
     NotesModule,
-    UsersModule,
+    AuthModule,
     // MongooseModule.forRoot(DB_HOST)
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(AuthMiddleware).forRoutes(NotesController, {
+      path: 'auth/logout',
+      method: RequestMethod.POST,
+    });
+  }
+}
+// .exclude({
+//   path: 'checkAccessToken/:accessToken',
+//   method: RequestMethod.GET,
+// })
+// export class AppModule {}

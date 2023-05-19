@@ -7,15 +7,15 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { UserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { TokensService } from 'src/tokens/tokens.service';
+import { AuthDto } from './dto/create-auth.dto';
+import { UpdateAuthDto } from './dto/update-auth.dto';
 import { NotesService } from 'src/notes/notes.service';
+const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
 // import { User } from 'src/models/user-shema';
 const User = require('../models/user-shema');
-
+const Token = require('../models/token-shema');
 const Note = require('../models/notes-shema');
 
 import * as bcrypt from 'bcrypt';
@@ -32,11 +32,8 @@ interface IUser {
 }
 
 @Injectable()
-export class UsersService {
-  constructor(
-    private tokensService: TokensService,
-    private notesService: NotesService,
-  ) {}
+export class AuthService {
+  constructor(private notesService: NotesService) {}
 
   async sendActivationEmail(email, activationLink) {
     const transporter = nodemailer.createTransport({
@@ -73,7 +70,7 @@ export class UsersService {
     if (candidate) {
       throw new BadRequestException({
         message: `Пользователь с таким email (${email}) уже зарегестрирован.`,
-        error: HttpStatus.BAD_REQUEST,
+        statusCode: HttpStatus.BAD_REQUEST,
       });
     }
 
@@ -93,6 +90,13 @@ export class UsersService {
       `${process.env.API_URL}/auth/activate/${activationLink}`,
     );
 
+    await this.notesService.addNote({
+      parentId: null,
+      text: 'Start',
+      childrenId: [],
+      userId: user._id,
+    });
+
     return await this.addTokensToUser(user);
   }
 
@@ -103,7 +107,7 @@ export class UsersService {
     if (!user) {
       throw new BadRequestException({
         message: `Пользователь с таким email (${email}) не найден.`,
-        error: HttpStatus.BAD_REQUEST,
+        statusCode: HttpStatus.BAD_REQUEST,
       });
     }
 
@@ -111,7 +115,7 @@ export class UsersService {
     if (!isPasswordCorrect) {
       throw new BadRequestException({
         message: 'Неверный пароль.',
-        error: HttpStatus.BAD_REQUEST,
+        statusCode: HttpStatus.BAD_REQUEST,
       });
     }
 
@@ -119,7 +123,7 @@ export class UsersService {
   }
 
   async logout(refreshToken) {
-    const token = await this.tokensService.removeToken(refreshToken);
+    const token = await this.removeToken(refreshToken);
     return token;
   }
 
@@ -128,7 +132,7 @@ export class UsersService {
     if (!user) {
       throw new BadRequestException({
         message: 'Некорректная ссылка активации.',
-        error: HttpStatus.BAD_REQUEST,
+        statusCode: HttpStatus.BAD_REQUEST,
       });
     }
 
@@ -147,21 +151,20 @@ export class UsersService {
     if (!refreshToken) {
       throw new UnauthorizedException({
         message: 'Не найден refreshToken',
-        error: HttpStatus.UNAUTHORIZED,
+        statusCode: HttpStatus.UNAUTHORIZED,
       });
     }
-    console.log('refreshToken =============', refreshToken);
+    // console.log('refreshToken =============', refreshToken);
 
-    const userData = this.tokensService.validateRefreshToken(refreshToken);
-    const tokenFromDb = await this.tokensService.findToken(refreshToken);
+    const userData = this.validateRefreshToken(refreshToken);
+    const tokenFromDb = await this.findToken(refreshToken);
 
-    console.log('userData =============', userData);
-    console.log('tokenFromDb ============', tokenFromDb);
+    // console.log('tokenFromDb ============', tokenFromDb);
 
     if (!userData || !tokenFromDb) {
       throw new UnauthorizedException({
         message: 'Не найден refreshToken или токен не валидный.',
-        error: HttpStatus.UNAUTHORIZED,
+        statusCode: HttpStatus.UNAUTHORIZED,
       });
     }
 
@@ -171,12 +174,13 @@ export class UsersService {
   }
 
   async addTokensToUser(user) {
-    const userDto = new UserDto(user);
+    const userDto = new AuthDto(user);
 
     // Генерируем аксес и рефреш токены, закладывая в них "не важные" данные (не пароль)
-    const tokens = this.tokensService.generateToken({ ...userDto });
+    const tokens = this.generateToken({ ...userDto });
+
     // Ф-ция из tokensService добавит токен в БД
-    await this.tokensService.saveToken(user._id, tokens.refreshToken);
+    await this.saveToken(user._id, tokens.refreshToken);
 
     return {
       ...tokens,
@@ -184,8 +188,65 @@ export class UsersService {
     };
   }
 
-  async getUsers() {
+  //
+  // Tokens
+  //
+
+  generateToken(payload) {
+    const accessToken: string = jwt.sign(
+      payload,
+      process.env.JWT_ACCESS_SECRET,
+      {
+        expiresIn: '10s',
+      },
+    );
+
+    const refreshToken: string = jwt.sign(
+      payload,
+      process.env.JWT_REFRESH_SECRET,
+      {
+        expiresIn: '30d',
+      },
+    );
+
+    return { accessToken, refreshToken };
+  }
+
+  async saveToken(userId, refreshToken) {
+    const tokenData = await Token.findOne({ user: userId });
+
+    if (tokenData) {
+      tokenData.refreshToken = refreshToken;
+
+      return await tokenData.save();
+    }
+
+    const newToken = await Token.create({ user: userId, refreshToken });
+
+    return newToken;
+  }
+
+  async removeToken(token) {
+    return await Token.deleteOne({ refreshToken: token });
+  }
+
+  validateAccessToken(token) {
     try {
-    } catch (error) {}
+      return jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  validateRefreshToken(token) {
+    try {
+      return jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  async findToken(token) {
+    return await Token.findOne({ refreshToken: token });
   }
 }

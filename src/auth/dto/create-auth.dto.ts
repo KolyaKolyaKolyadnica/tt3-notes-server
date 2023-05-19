@@ -1,6 +1,6 @@
 import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 
-export class UserDtoBody {
+export class AuthDtoBody {
   @IsEmail()
   @IsNotEmpty()
   email: string;
@@ -15,7 +15,7 @@ export class UserDtoBody {
 
   // activationLink: boolean; // Наверное по ошибке осталось
 }
-export class UserLoginDtoBody {
+export class AuthLoginDtoBody {
   @IsEmail()
   @IsNotEmpty()
   email: string;
@@ -25,7 +25,7 @@ export class UserLoginDtoBody {
   @IsString()
   password: string;
 }
-export class UserDto {
+export class AuthDto {
   id: string;
   email: string;
   username: string;
