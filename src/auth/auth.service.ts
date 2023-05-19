@@ -14,9 +14,10 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
 import { User } from 'src/models/user-shema';
+import { Token } from 'src/models/token-shema';
 // const User = require('../models/user-shema');
-const Token = require('../models/token-shema');
-const Note = require('../models/notes-shema');
+// const Token = require('../models/token-shema');
+// const Note = require('../models/notes-shema');
 
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
@@ -37,6 +38,7 @@ interface IUser {
 export class AuthService {
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
+    @InjectModel(Token.name) private tokenModel: Model<Token>,
     private notesService: NotesService,
   ) {}
 
@@ -245,7 +247,8 @@ export class AuthService {
   }
 
   async saveToken(userId, refreshToken) {
-    const tokenData = await Token.findOne({ user: userId });
+    const tokenData = await this.tokenModel.findOne({ user: userId });
+    // const tokenData = await Token.findOne({ user: userId });
 
     if (tokenData) {
       tokenData.refreshToken = refreshToken;
@@ -253,13 +256,18 @@ export class AuthService {
       return await tokenData.save();
     }
 
-    const newToken = await Token.create({ user: userId, refreshToken });
+    const newToken = await this.tokenModel.create({
+      user: userId,
+      refreshToken,
+    });
+    // const newToken = await Token.create({ user: userId, refreshToken });
 
     return newToken;
   }
 
   async removeToken(token) {
-    return await Token.deleteOne({ refreshToken: token });
+    return await this.tokenModel.deleteOne({ refreshToken: token });
+    // return await Token.deleteOne({ refreshToken: token });
   }
 
   validateAccessToken(token) {
@@ -279,6 +287,7 @@ export class AuthService {
   }
 
   async findToken(token) {
-    return await Token.findOne({ refreshToken: token });
+    return await this.tokenModel.findOne({ refreshToken: token });
+    // return await Token.findOne({ refreshToken: token });
   }
 }

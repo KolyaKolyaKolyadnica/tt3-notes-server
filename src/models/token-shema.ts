@@ -1,19 +1,35 @@
-import { Schema, model } from 'mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import * as mongoose from 'mongoose';
 
-const token = new Schema(
-  {
-    user: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-    },
-    refreshToken: {
-      type: String,
-      require: true,
-    },
-  },
-  { versionKey: false },
-);
+export type TokenDocument = mongoose.HydratedDocument<Token>;
 
-const Token = model('token', token);
+@Schema()
+export class Token {
+  @Prop({ required: true, ref: 'User' })
+  user: mongoose.Schema.Types.ObjectId;
 
-module.exports = Token;
+  @Prop({ required: true })
+  refreshToken: string;
+}
+
+export const TokenSchema = SchemaFactory.createForClass(Token);
+
+// import { Schema, model } from 'mongoose';
+
+// const token = new Schema(
+//   {
+//     user: {
+//       type: Schema.Types.ObjectId,
+//       ref: 'User',
+//     },
+//     refreshToken: {
+//       type: String,
+//       require: true,
+//     },
+//   },
+//   { versionKey: false },
+// );
+
+// const Token = model('token', token);
+
+// module.exports = Token;

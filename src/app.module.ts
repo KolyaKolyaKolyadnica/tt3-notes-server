@@ -13,9 +13,6 @@ import { AuthMiddleware } from './middleware/auth.middleware';
 import { NotesController } from './notes/notes.controller';
 require('dotenv').config();
 
-const DB_HOST = process.env.DB_HOST;
-console.log(DB_HOST);
-
 @Module({
   imports: [
     NotesModule,
