@@ -3,19 +3,15 @@ import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-// import { Note } from 'src/models/notes-shema';
-const Note = require('../models/notes-shema');
+import { Note } from 'src/models/notes-shema';
 
 @Injectable()
 export class NotesService {
-  // constructor(@InjectModel(Note.name) private noteModel: Model<Note>) {}
-  constructor() {}
+  constructor(@InjectModel(Note.name) private noteModel: Model<Note>) {}
 
   async getAllNotes(userId) {
     try {
-      // const notes = await this.noteModel.find({ userId });
-      const notes = await Note.find({ userId });
-      return notes;
+      return await this.noteModel.find({ userId });
     } catch (error) {
       return error;
     }
@@ -23,9 +19,7 @@ export class NotesService {
 
   async getNoteById(id: string) {
     try {
-      // const note = await Note.findById(id).exec() // Нафіга цей ехес()???
-      // const note = await this.noteModel.findById(id);
-      const note = await Note.findById(id);
+      const note = await this.noteModel.findById(id);
 
       if (!note) {
         throw new NotFoundException();
@@ -39,16 +33,14 @@ export class NotesService {
 
   async addNote(dto: CreateNoteDto) {
     try {
-      // const note = new this.noteModel(dto);
-      const note = new Note(dto);
+      const note = new this.noteModel(dto);
       await note.save();
 
-      const parentNode = await this.getNoteById(dto.parentId);
-
-      parentNode.childrenId = [...parentNode.childrenId, note._id.toString()];
-      // parentNode.childrenId = [...parentNode.childrenId, note.id];
-
-      await parentNode.save();
+      if (dto.parentId) {
+        const parentNode = await this.getNoteById(dto.parentId);
+        parentNode.childrenId = [...parentNode.childrenId, note._id.toString()];
+        await parentNode.save();
+      }
 
       return note;
     } catch (error) {
@@ -63,8 +55,7 @@ export class NotesService {
       if (rootNote.childrenId.length !== 0) {
         rootNote.childrenId.forEach(async (children: string) => {
           await this.deleteAllChildren(children);
-          // await this.noteModel.findByIdAndDelete(children);
-          await Note.findByIdAndDelete(children);
+          await this.noteModel.findByIdAndDelete(children);
         });
       }
     } catch (error) {
@@ -76,8 +67,7 @@ export class NotesService {
     try {
       await this.deleteAllChildren(id);
 
-      // const note = await this.noteModel.findByIdAndDelete(id);
-      const note = await Note.findByIdAndDelete(id);
+      const note = await this.noteModel.findByIdAndDelete(id);
 
       const parentNode = await this.getNoteById(note.parentId);
       parentNode.childrenId = parentNode.childrenId.filter(
@@ -107,8 +97,7 @@ export class NotesService {
 
   async updateNote(id: string, dto: UpdateNoteDto) {
     try {
-      // const note = await this.noteModel.findByIdAndUpdate(id, dto);
-      const note = await Note.findByIdAndUpdate(id, dto);
+      const note = await this.noteModel.findByIdAndUpdate(id, dto);
 
       return note;
     } catch (error) {

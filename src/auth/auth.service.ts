@@ -1,29 +1,19 @@
 import {
   BadRequestException,
-  HttpException,
   HttpStatus,
   Injectable,
-  MethodNotAllowedException,
-  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { AuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
 import { NotesService } from 'src/notes/notes.service';
-const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
-
 import { User } from 'src/models/user-shema';
 import { Token } from 'src/models/token-shema';
-// const User = require('../models/user-shema');
-// const Token = require('../models/token-shema');
-// const Note = require('../models/notes-shema');
-
-import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-// const uuid = require('uuid'); // По сути не нужный пакет т.к. есть crypto
+import * as bcrypt from 'bcrypt';
+const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
 
 interface IUser {
   _id: string;
@@ -74,7 +64,6 @@ export class AuthService {
     }
 
     const candidate: IUser = await this.userModel.findOne({ email });
-    // const candidate: IUser = await User.findOne({ email });
     if (candidate) {
       throw new BadRequestException({
         message: `Пользователь с таким email (${email}) уже зарегестрирован.`,
@@ -84,7 +73,6 @@ export class AuthService {
 
     const hashPassword = await bcrypt.hash(password, 5);
 
-    // const activationLink = uuid.v4();
     const activationLink = randomUUID();
 
     const user = await this.userModel.create({
@@ -92,22 +80,11 @@ export class AuthService {
       password: hashPassword,
       activationLink,
     });
-    // const user = await User.create({
-    //   ...dto,
-    //   password: hashPassword,
-    //   activationLink,
-    // });
 
     await this.sendActivationEmail(
       email,
       `${process.env.API_URL}/auth/activate/${activationLink}`,
     );
-
-    console.log('===');
-    console.log('===');
-    console.log('user === ', user);
-    console.log('===');
-    console.log('===');
 
     await this.notesService.addNote({
       parentId: null,
@@ -115,12 +92,6 @@ export class AuthService {
       childrenId: [],
       userId: user._id.toString(),
     });
-    // await this.notesService.addNote({
-    //   parentId: null,
-    //   text: 'Start',
-    //   childrenId: [],
-    //   userId: user._id,
-    // });
 
     return await this.addTokensToUser(user);
   }
@@ -129,7 +100,6 @@ export class AuthService {
     const { email, password } = dto;
 
     const user: IUser = await this.userModel.findOne({ email });
-    // const user: IUser = await User.findOne({ email });
     if (!user) {
       throw new BadRequestException({
         message: `Пользователь с таким email (${email}) не найден.`,
@@ -149,13 +119,11 @@ export class AuthService {
   }
 
   async logout(refreshToken) {
-    const token = await this.removeToken(refreshToken);
-    return token;
+    return await this.removeToken(refreshToken);
   }
 
   async activate(activationLink) {
     const user = await this.userModel.findOne({ activationLink });
-    // const user = await User.findOne({ activationLink });
     if (!user) {
       throw new BadRequestException({
         message: 'Некорректная ссылка активации.',
@@ -165,19 +133,6 @@ export class AuthService {
 
     user.isActivated = true;
     await user.save();
-
-    const firstNote = await this.notesService.addNote({
-      userId: user._id.toString(),
-      text: '',
-      parentId: null,
-      childrenId: [],
-    });
-    // const firstNote = await this.notesService.addNote({
-    //   userId: user._id,
-    //   text: '',
-    //   parentId: null,
-    //   childrenId: [],
-    // });
   }
 
   async refresh(refreshToken) {
@@ -187,12 +142,9 @@ export class AuthService {
         statusCode: HttpStatus.UNAUTHORIZED,
       });
     }
-    // console.log('refreshToken =============', refreshToken);
 
     const userData = this.validateRefreshToken(refreshToken);
     const tokenFromDb = await this.findToken(refreshToken);
-
-    // console.log('tokenFromDb ============', tokenFromDb);
 
     if (!userData || !tokenFromDb) {
       throw new UnauthorizedException({
@@ -202,7 +154,6 @@ export class AuthService {
     }
 
     const user = await this.userModel.findById(tokenFromDb.user);
-    // const user = await User.findById(tokenFromDb.user);
 
     return await this.addTokensToUser(user);
   }
@@ -210,10 +161,8 @@ export class AuthService {
   async addTokensToUser(user) {
     const userDto = new AuthDto(user);
 
-    // Генерируем аксес и рефреш токены, закладывая в них "не важные" данные (не пароль)
     const tokens = this.generateToken({ ...userDto });
 
-    // Ф-ция из tokensService добавит токен в БД
     await this.saveToken(user._id, tokens.refreshToken);
 
     return {
@@ -248,7 +197,6 @@ export class AuthService {
 
   async saveToken(userId, refreshToken) {
     const tokenData = await this.tokenModel.findOne({ user: userId });
-    // const tokenData = await Token.findOne({ user: userId });
 
     if (tokenData) {
       tokenData.refreshToken = refreshToken;
@@ -256,18 +204,14 @@ export class AuthService {
       return await tokenData.save();
     }
 
-    const newToken = await this.tokenModel.create({
+    return await this.tokenModel.create({
       user: userId,
       refreshToken,
     });
-    // const newToken = await Token.create({ user: userId, refreshToken });
-
-    return newToken;
   }
 
   async removeToken(token) {
     return await this.tokenModel.deleteOne({ refreshToken: token });
-    // return await Token.deleteOne({ refreshToken: token });
   }
 
   validateAccessToken(token) {
@@ -288,6 +232,5 @@ export class AuthService {
 
   async findToken(token) {
     return await this.tokenModel.findOne({ refreshToken: token });
-    // return await Token.findOne({ refreshToken: token });
   }
 }

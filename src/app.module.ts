@@ -30,8 +30,3 @@ export class AppModule implements NestModule {
     });
   }
 }
-// .exclude({
-//   path: 'checkAccessToken/:accessToken',
-//   method: RequestMethod.GET,
-// })
-// export class AppModule {}

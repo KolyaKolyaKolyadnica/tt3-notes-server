@@ -4,9 +4,6 @@ import {
   Controller,
   Get,
   Post,
-  Put,
-  Delete,
-  Query,
   Res,
   Req,
   UseFilters,
@@ -38,7 +35,10 @@ export class AuthController {
       maxAge: 30 * 24 * 60 * 60 * 1000,
       httpOnly: true,
     });
-    return data;
+
+    const responseDataAuth = data;
+    delete responseDataAuth.refreshToken;
+    return responseDataAuth;
   }
 
   @Post('login')
@@ -52,7 +52,10 @@ export class AuthController {
       maxAge: 30 * 24 * 60 * 60 * 1000,
       httpOnly: true,
     });
-    return data;
+
+    const responseDataAuth = data;
+    delete responseDataAuth.refreshToken;
+    return responseDataAuth;
   }
 
   @Post('logout')
@@ -76,6 +79,9 @@ export class AuthController {
       maxAge: 30 * 24 * 60 * 60 * 1000,
       httpOnly: true,
     });
-    return data;
+
+    const responseDataAuth = data;
+    delete responseDataAuth.refreshToken;
+    return responseDataAuth;
   }
 }

@@ -34,12 +34,9 @@ export class AuthMiddleware implements NestMiddleware {
           error: HttpStatus.UNAUTHORIZED,
         });
       }
-      //   req.user = userData;
 
       next();
     } catch (error) {
-      console.log('Ошибка в мидлваре.', error);
-
       throw new UnauthorizedException({
         message: 'Ошибка в мидлваре.',
         error: HttpStatus.UNAUTHORIZED,

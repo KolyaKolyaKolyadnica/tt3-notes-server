@@ -22,34 +22,3 @@ export class User {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
-
-// import { Schema, model } from 'mongoose';
-// const user = new Schema(
-//   {
-//     email: {
-//       type: String,
-//       require: true,
-//       unique: true,
-//     },
-//     password: {
-//       type: String,
-//       require: true,
-//     },
-//     username: {
-//       type: String,
-//       require: true,
-//     },
-//     isActivated: {
-//       type: Boolean,
-//       default: false,
-//     },
-//     activationLink: {
-//       type: String,
-//     },
-//   },
-//   { versionKey: false },
-// );
-
-// const User = model('user', user);
-
-// module.exports = User;

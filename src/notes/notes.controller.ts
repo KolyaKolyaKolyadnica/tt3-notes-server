@@ -8,9 +8,7 @@ import {
   Delete,
   Query,
   UseFilters,
-  Req,
 } from '@nestjs/common';
-import { Request } from 'express';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 import { NotesService } from './notes.service';
